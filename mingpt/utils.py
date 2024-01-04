@@ -6,7 +6,7 @@ import random
 from ast import literal_eval
 
 import numpy as np
-import torch
+from mindtorch import torch
 
 # -----------------------------------------------------------------------------
 

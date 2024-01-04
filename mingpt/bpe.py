@@ -13,7 +13,7 @@ import json
 import regex as re
 import requests
 
-import torch
+from mindtorch import torch
 
 # -----------------------------------------------------------------------------
 
