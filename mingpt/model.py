@@ -18,13 +18,13 @@ from mingpt.utils import CfgNode as CN
 
 # -----------------------------------------------------------------------------
 
-class NewGELU(nn.Module):
-    """
-    Implementation of the GELU activation function currently in Google BERT repo (identical to OpenAI GPT).
-    Reference: Gaussian Error Linear Units (GELU) paper: https://arxiv.org/abs/1606.08415
-    """
-    def forward(self, x):
-        return 0.5 * x * (1.0 + torch.tanh(math.sqrt(2.0 / math.pi) * (x + 0.044715 * torch.pow(x, 3.0))))
+# class NewGELU(nn.Module):
+#     """
+#     Implementation of the GELU activation function currently in Google BERT repo (identical to OpenAI GPT).
+#     Reference: Gaussian Error Linear Units (GELU) paper: https://arxiv.org/abs/1606.08415
+#     """
+#     def forward(self, x):
+#         return 0.5 * x * (1.0 + torch.tanh(math.sqrt(2.0 / math.pi) * (x + 0.044715 * torch.pow(x, 3.0))))
 
 class CausalSelfAttention(nn.Module):
     """
@@ -59,9 +59,7 @@ class CausalSelfAttention(nn.Module):
         # print('qkv', q, k, v)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
-        print(q.shape, k.shape)
         att = q @ k.transpose(-2, -1)
-        print(att)
         att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
         att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
         att = F.softmax(att, dim=-1)
@@ -84,7 +82,7 @@ class Block(nn.Module):
         self.mlp = nn.ModuleDict(dict(
             c_fc    = nn.Linear(config.n_embd, 4 * config.n_embd),
             c_proj  = nn.Linear(4 * config.n_embd, config.n_embd),
-            act     = NewGELU(),
+            act     = nn.GELU(approximate='tanh'),
             dropout = nn.Dropout(config.resid_pdrop),
         ))
         m = self.mlp
@@ -92,7 +90,6 @@ class Block(nn.Module):
 
     def forward(self, x):
         x = x + self.attn(self.ln_1(x))
-        print(x)
         x = x + self.mlpf(self.ln_2(x))
         return x
 
@@ -266,7 +263,6 @@ class GPT(nn.Module):
         b, t = idx.size()
         assert t <= self.block_size, f"Cannot forward sequence of length {t}, block size is only {self.block_size}"
         pos = torch.arange(0, t, dtype=torch.long, device=device).unsqueeze(0) # shape (1, t)
-        print(pos)
         # forward the GPT model itself
         tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
         pos_emb = self.transformer.wpe(pos) # position embeddings of shape (1, t, n_embd)
